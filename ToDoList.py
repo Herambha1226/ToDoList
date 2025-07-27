@@ -1,3 +1,4 @@
+
 from kivy.core.window import Window
 Window.size = (360,640)
 from kivymd.app import MDApp

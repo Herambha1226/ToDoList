@@ -1,34 +1,42 @@
-name: Build Kivy APK
+name: Build APK
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Get current date
+        id: get-date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Cache buildozer global directory
+        uses: actions/cache@v2
         with:
-          python-version: 3.10
+          path: ~/.buildozer
+          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip python3-setuptools python3-wheel build-essential
-          pip install --upgrade pip
-          pip install buildozer cython
+      - name: Cache build directory
+        uses: actions/cache@v2
+        with:
+          path: .buildozer
+          key: buildozer-${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
 
-      - name: Build APK
-        run: |
-          buildozer android debug
+      - name: Build APK with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: stable
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v2
         with:
-          name: kivy-app-debug-apk
-          path: bin/*.apk
+          name: kivy-apk
+          path: ${{ steps.buildozer.outputs.filename }}
